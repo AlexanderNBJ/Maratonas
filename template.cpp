@@ -22,6 +22,7 @@ typedef vector<ll> vll;
 #define sz(x) ((int)(x).size())
 #define all(x) (x).begin(), (x).end()
 #define rall(x) (x).rbegin(), (x).rend()
+#define endl '\n'
 
 // Loops
 #define forn(i, n) for (int i = 0; i < (int)(n); ++i)
