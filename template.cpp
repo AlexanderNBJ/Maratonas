@@ -10,26 +10,28 @@
 using namespace std;
 using namespace __gnu_pbds;
 
-// Definições de Tipos
+// --- OTIMIZAÇÃO (Opcional - use se o limite de tempo for rígido)
+// #pragma GCC optimize("O3,unroll-loops")
+// #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+
+// --- DEFINIÇÕES DE TIPOS
 typedef long long ll;
+typedef long double ld;
 typedef pair<int, int> pii;
 typedef pair<ll, ll> pll;
 typedef vector<int> vi;
 typedef vector<ll> vll;
+typedef __int128_t int128; // Para cálculos que extrapolam long long
 
-// --- PBDS Typedefs ---
-// Funciona como um std::set, mas com duas funções extra em O(log N):
-// 1. find_by_order(k): Retorna um iterador para o k-ésimo menor elemento (0-indexed).
-// 2. order_of_key(k): Retorna a quantidade de elementos estritamente menores que k.
+// --- PBDS (Set com Rank e K-ésimo elemento)
 template <typename T> 
 using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
 
-// Macros para Agilidade
-#define pb push_back
-#define eb emplace_back
-#define mp make_pair
+// --- MACROS
 #define f first
 #define s second
+#define pb push_back
+#define eb emplace_back
 #define sz(x) ((int)(x).size())
 #define all(x) (x).begin(), (x).end()
 #define rall(x) (x).rbegin(), (x).rend()
@@ -41,32 +43,40 @@ using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statisti
 #define fore(i, a, b) for (int i = (int)(a); i <= (int)(b); ++i)
 #define ford(i, n) for (int i = (int)(n) - 1; i >= 0; --i)
 
-// Constantes
-const int INF = 1e9;
-const ll INF64 = 1e18;
-const ll MOD = 1e9 + 7;
+// --- CONSTANTES ---
+const int INF = 1e9 + 7;
+const ll INF64 = 1e18 + 7;
+const ll MOD = 1e9 + 7; // 998244353;
 const double PI = acos(-1.0);
+const double EPS = 1e-9;
 
-// Debugging
-// Para usar: compile com a flag -DLOCAL ou descomente a linha abaixo
-// #define LOCAL
+// --- DEBUG SYSTEM
 #ifdef LOCAL
-#define debug(x) cerr << #x << " = " << x << endl
+#define debug(x...) cerr << "[" << #x << "] = ["; _debug_print(x)
 #else
-#define debug(x)
+#define debug(x...)
 #endif
 
-// ==============================================================================
-// ALGORITMOS E ESTRUTURAS DE DADOS ÚTEIS (COPIE/APAGUE CONFORME A NECESSIDADE)
-// ==============================================================================
+void _debug_print() { cerr << "]\n"; }
+template <typename T, typename... V> void _debug_print(T t, V... v);
+template <typename T, typename U> ostream& operator<<(ostream& os, const pair<T, U>& p) { return os << "{" << p.f << ", " << p.s << "}"; }
+template <typename T> ostream& operator<<(ostream& os, const vector<T>& v) { os << "["; forn(i, sz(v)) os << v[i] << (i == sz(v) - 1 ? "" : ", "); return os << "]"; }
+template <typename T, typename... V> void _debug_print(T t, V... v) { cerr << t; if (sizeof...(v)) cerr << ", "; _debug_print(v...); }
 
-// --- RNG (Random Number Generator) ---
-// Melhor que rand(), seguro contra hacks em competições
+// --- UTILS & MATH
 mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 inline ll get_rand(ll l, ll r) { return uniform_int_distribution<ll>(l, r)(rng); }
 
-// --- CUSTOM HASH PARA UNORDERED_MAP ---
-// Evita TLE contra casos de teste maliciosos (colisão de hash)
+ll binpow(ll a, ll b, ll m = MOD) {
+    a %= m; ll res = 1;
+    while (b > 0) {
+        if (b & 1) res = (__int128)res * a % m;
+        a = (__int128)a * a % m; b >>= 1;
+    }
+    return res;
+}
+
+// Custom Hash para unordered_map (anti-hack)
 struct custom_hash {
     static uint64_t splitmix64(uint64_t x) {
         x += 0x9e3779b97f4a7c15;
@@ -79,126 +89,81 @@ struct custom_hash {
         return splitmix64(x + FIXED_RANDOM);
     }
 };
-// Uso: unordered_map<ll, ll, custom_hash> mapa_seguro;
 
-// --- MATH UTILS ---
-// Exponenciação Rápida Modular: Calcula (base^exp) % mod em O(log exp)
-ll binpow(ll base, ll exp, ll mod = MOD) {
-    ll res = 1;
-    base %= mod;
-    while (exp > 0) {
-        if (exp % 2 == 1) res = (res * base) % mod;
-        base = (base * base) % mod;
-        exp /= 2;
-    }
-    return res;
-}
+// --- ESTRUTURAS DE DADOS
 
-// Inverso Modular: Retorna x tal que (a * x) % mod == 1 em O(log mod)
-ll modInverse(ll n, ll mod = MOD) {
-    return binpow(n, mod - 2, mod); // Funciona se mod for primo (Pequeno Teorema de Fermat)
-}
-
-// --- DSU (Disjoint Set Union / Union-Find) ---
-// O(alpha(N)) para verificar conectividade de grafos ou Kruskal
 struct DSU {
-    vll parent, size;
-    DSU(ll n) {
-        parent.resize(n + 1);
-        size.assign(n + 1, 1);
-        for1(i, n) parent[i] = i;
+    vi parent, sz;
+    DSU(int n) {
+        parent.resize(n + 1); sz.assign(n + 1, 1);
+        iota(all(parent), 0);
     }
-    ll find(ll v) {
-        if (v == parent[v]) return v;
-        return parent[v] = find(parent[v]); // Path compression
-    }
-    bool unite(ll a, ll b) {
-        a = find(a);
-        b = find(b);
-        if (a != b) {
-            if (size[a] < size[b]) swap(a, b); // Union by size
-            parent[b] = a;
-            size[a] += size[b];
+    int find(int i) { return (parent[i] == i) ? i : (parent[i] = find(parent[i])); }
+    bool unite(int i, int j) {
+        int root_i = find(i), root_j = find(j);
+        if (root_i != root_j) {
+            if (sz[root_i] < sz[root_j]) swap(root_i, root_j);
+            parent[root_j] = root_i; sz[root_i] += sz[root_j];
             return true;
         }
         return false;
     }
 };
 
-// --- FENWICK TREE (Binary Indexed Tree - BIT) ---
-// O(log N) para Ponto de Atualização e Soma de Intervalo
 struct BIT {
-    ll n;
-    vll tree;
-    BIT(ll n) : n(n), tree(n + 1, 0) {}
-    void update(ll i, ll delta) {
-        for (; i <= n; i += i & -i) tree[i] += delta;
-    }
-    ll query(ll i) {
+    int n; vll tree;
+    BIT(int n) : n(n), tree(n + 1, 0) {}
+    void update(int i, ll delta) { for (; i <= n; i += i & -i) tree[i] += delta; }
+    ll query(int i) {
         ll sum = 0;
         for (; i > 0; i -= i & -i) sum += tree[i];
         return sum;
     }
-    ll query(ll l, ll r) {
-        if (l > r) return 0;
-        return query(r) - query(l - 1);
-    }
+    ll query(int l, int r) { return (l > r) ? 0 : query(r) - query(l - 1); }
 };
 
-// --- SEGMENT TREE (Ponto de Atualização, Range Query) ---
-// O(log N) - Mude a função 'combine' para MIN, MAX, GCD, etc.
+// Segment Tree Genérica (Ponto de Atualização)
 struct SegTree {
-    ll n;
-    vll tree;
-    SegTree(ll n) : n(n), tree(4 * n, 0) {}
+    int n; vll tree;
+    ll neutral = 0; // Altere conforme a operação (0 para soma, INF para min, etc)
     
-    ll combine(ll a, ll b) { return a + b; } // Altere aqui a operação (ex: min(a,b))
+    SegTree(int n) : n(n), tree(4 * n, neutral) {}
+    
+    ll merge(ll a, ll b) { return a + b; } // Altere a operação aqui
 
-    void build(const vll& a, ll node, ll start, ll end) {
-        if (start == end) {
-            tree[node] = a[start];
-        } else {
-            ll mid = (start + end) / 2;
-            build(a, 2 * node, start, mid);
-            build(a, 2 * node + 1, mid + 1, end);
-            tree[node] = combine(tree[2 * node], tree[2 * node + 1]);
-        }
+    void update(int node, int start, int end, int idx, ll val) {
+        if (start == end) { tree[node] = val; return; }
+        int mid = (start + end) / 2;
+        if (idx <= mid) update(2 * node, start, mid, idx, val);
+        else update(2 * node + 1, mid + 1, end, idx, val);
+        tree[node] = merge(tree[2 * node], tree[2 * node + 1]);
     }
-    void update(ll node, ll start, ll end, ll idx, ll val) {
-        if (start == end) {
-            tree[node] = val; // Substituição. Se for adição, mude para +=
-        } else {
-            ll mid = (start + end) / 2;
-            if (start <= idx && idx <= mid)
-                update(2 * node, start, mid, idx, val);
-            else
-                update(2 * node + 1, mid + 1, end, idx, val);
-            tree[node] = combine(tree[2 * node], tree[2 * node + 1]);
-        }
-    }
-    ll query(ll node, ll start, ll end, ll l, ll r) {
-        if (r < start || end < l) return 0; // Elemento neutro (0 pra soma, INF pra min)
+    
+    ll query(int node, int start, int end, int l, int r) {
+        if (r < start || end < l) return neutral;
         if (l <= start && end <= r) return tree[node];
-        ll mid = (start + end) / 2;
-        ll p1 = query(2 * node, start, mid, l, r);
-        ll p2 = query(2 * node + 1, mid + 1, end, l, r);
-        return combine(p1, p2);
+        int mid = (start + end) / 2;
+        return merge(query(2 * node, start, mid, l, r), query(2 * node + 1, mid + 1, end, l, r));
     }
+    // Helpers para facilitar a chamada
+    void update(int idx, ll val) { update(1, 0, n - 1, idx, val); }
+    ll query(int l, int r) { return query(1, 0, n - 1, l, r); }
 };
-// ==============================================================================
 
 void solve() {
-    // Sua lógica aqui
+    //
 }
 
 int main() {
-    // Otimização de I/O
+    // Performance de I/O
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
-    
-    // Se o problema tiver múltiplos casos de teste, descomente:
-    // int t; cin >> t; while (t--)
-    solve();
+
+    int t = 1;
+    // cin >> t; // Descomente se houver múltiplos casos de teste
+    while (t--) {
+        solve();
+    }
 
     return 0;
 }
