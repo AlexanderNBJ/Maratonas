@@ -1,5 +1,5 @@
 /*
-    NOME DO PROBLEMA - CÓDIGO DO PROBLEMA
+    Nested Ranges Check - 2168
     Alexander Neves Barbosa Júnior
 */
 
@@ -185,10 +185,58 @@ struct SegTree {
         return combine(p1, p2);
     }
 };
-// ==============================================================================
+
+bool ordena(tuple<int,int,int>& a, tuple<int,int,int>& b){
+    if(get<0>(a)==get<0>(b)){
+        return get<1>(a) > get<1>(b);
+    }
+    else{
+        return get<0>(a) < get<0>(b);
+    }
+}
 
 void solve() {
-    // Sua lógica aqui
+    int n;
+    cin >> n;
+ 
+    vector<tuple<int,int,int>> range(n);
+ 
+    for(int i=0; i<n; i++){
+        int a,b;
+        cin >> a >> b;
+        
+        get<0>(range[i])=a;
+        get<1>(range[i])=b;
+        get<2>(range[i])=i;
+    }
+ 
+    sort(range.begin(), range.end(), ordena);
+    vector<int> contem(n), contido(n);
+ 
+    int maior = 0;
+    for(int i=0; i<n; i++){
+        if(get<1>(range[i]) <= maior){
+            contido[get<2>(range[i])] = 1;
+        }
+        maior = max(maior, get<1>(range[i]));
+    }
+ 
+    int menor = INF;
+    for(int i=n-1; i>=0; i--){
+        if(get<1>(range[i]) >= menor){
+            contem[get<2>(range[i])] = 1;
+        }
+        menor = min(menor, get<1>(range[i]));
+    }
+ 
+    for(int i: contem){
+        cout << i << ' ';
+    }
+    cout << endl;
+    for(int i: contido){
+        cout << i << ' ';
+    }
+
 }
 
 int main() {
